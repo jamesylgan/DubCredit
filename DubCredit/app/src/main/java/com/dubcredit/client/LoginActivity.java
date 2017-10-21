@@ -19,6 +19,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -29,6 +30,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.microsoft.cognitiveservices.speechrecognition.ISpeechRecognitionServerEvents;
+import com.microsoft.cognitiveservices.speechrecognition.MicrophoneRecognitionClient;
+import com.microsoft.cognitiveservices.speechrecognition.RecognitionResult;
+import com.microsoft.cognitiveservices.speechrecognition.SpeechRecognitionMode;
+import com.microsoft.cognitiveservices.speechrecognition.SpeechRecognitionServiceFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +44,43 @@ import static android.Manifest.permission.READ_CONTACTS;
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor> {
+
+public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor>,  ISpeechRecognitionServerEvents {
+    private final String TAG = "DubCredit";
+    private Button runVoiceRecognitionButton;
+    private MicrophoneRecognitionClient micClient;
+
+    @Override
+    public void onPartialResponseReceived(String partialResponse) {
+        Log.d(TAG, "Partial speech result: " + partialResponse);
+    }
+
+    @Override
+    public void onFinalResponseReceived(RecognitionResult recognitionResult) {
+        Log.d(TAG, "Final speech result: " + recognitionResult.Results[0]);
+        onComplete();
+    }
+
+    @Override
+    public void onIntentReceived(String speechIntent) {
+        Log.d(TAG, "Speech intent: " + speechIntent);
+    }
+
+    @Override
+    public void onError(int code, String error) {
+        Log.d(TAG, "Speech error: " + code + " - " + error);
+        onComplete();
+    }
+
+    @Override
+    public void onAudioEvent(boolean recording) {
+        Log.d(TAG, "Is recording = " + recording);
+    }
+
+    private void onComplete() {
+        runVoiceRecognitionButton.setEnabled(true);
+        micClient.endMicAndRecognition();
+    }
 
     /**
      * Id to identity READ_CONTACTS permission request.
@@ -87,6 +130,14 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             @Override
             public void onClick(View view) {
                 attemptLogin();
+            }
+        });
+
+        runVoiceRecognitionButton = (Button) findViewById(R.id.speechRecongnition);
+        runVoiceRecognitionButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                runVoiceRecognition();
             }
         });
 
@@ -345,6 +396,23 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             mAuthTask = null;
             showProgress(false);
         }
+    }
+
+    private void runVoiceRecognition() {
+        runVoiceRecognitionButton.setEnabled(false);
+
+        if (micClient == null) {
+            micClient = SpeechRecognitionServiceFactory.createMicrophoneClient(
+                    this,
+                    SpeechRecognitionMode.ShortPhrase,
+                    "en-us",
+                    this,
+                    getString(R.string.bing_speech_api_key),
+                    getString(R.string.bing_speech_api_key_secondary));
+        }
+
+        micClient.setAuthenticationUri("https://api.cognitive.microsoft.com/sts/v1.0");
+        micClient.startMicAndRecognition();
     }
 }
 

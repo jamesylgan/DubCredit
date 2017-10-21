@@ -13,4 +13,8 @@
     <string name="permission_rationale">"Contacts permissions are needed for providing email
         completions."
     </string>
+
+    <!-- Keys -->
+    <string name="bing_speech_api_key">5f11f1d6f190404b8e3225bf43c6cdfa</string>
+    <string name="bing_speech_api_key_secondary">284d6578573b4502b25c8df04b8fe1d0</string>
 </resources>

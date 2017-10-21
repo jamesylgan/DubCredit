@@ -1,0 +1,105 @@
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+allprojects {
+    repositories {
+        jcenter()
+    }
+}
+
+apply plugin: 'com.android.library'
+
+dependencies {
+    compile fileTree(dir: 'libs', include: '*.jar')
+    compile files('bin/SpeechSDK.jar')
+}
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+        }
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+}
+
+apply plugin: 'maven'
+apply plugin: 'signing'
+
+signing {
+    sign configurations.archives
+}
+
+// Group ID is the project name
+group = "com.microsoft.projectoxford"
+// Artifact name is the name of the technology
+archivesBaseName = "speechrecognition"
+// Update your version
+version = "1.2.2"
+
+// Upload artifacts to maven central repository staging servers
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            pom.project {
+                // The readable name of the artifact
+                name 'Microsoft Project Cognitive Services Speech Recognition Client Library'
+                packaging 'jar'
+
+                // optionally artifactId can be defined here
+
+                // Descriptions of the artifacts.
+                description 'This client library allows the use of Microsoft\'s state-of-the-art cloud-based algorithms to process spoken language. See https://github.com/Microsoft/Cognitive-Speech-STT-Android/tree/master/Speech for more information.'
+
+                // Project URL
+                url 'https://github.com/Microsoft/Cognitive-Speech-STT-Android'
+
+                // Github information
+                scm {
+                    connection 'scm:git:https://github.com/Microsoft/Cognitive-Speech-STT-Android'
+                    developerConnection 'scm:git:https://github.com/Microsoft/Cognitive-Speech-STT-Android'
+                    url 'scm:git:https://github.com/Microsoft/Cognitive-Speech-STT-Android'
+                }
+
+                licenses {
+                    license {
+                        name 'MIT'
+                        url 'https://github.com/Microsoft/Cognitive-Speech-STT-Android/blob/master/LICENSE.md'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'projectoxfordSDK'
+                        name 'Project Oxford Client SDK'
+                        email 'projectoxfordsdk@microsoft.com'
+                    }
+                }
+            }
+        }
+    }
+}
