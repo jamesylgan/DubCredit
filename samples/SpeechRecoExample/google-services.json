@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "528890704582",
+    "firebase_url": "https://dubcredit-5f37e.firebaseio.com",
+    "project_id": "dubcredit-5f37e",
+    "storage_bucket": "dubcredit-5f37e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:528890704582:android:d5af76a0244b1d8b",
+        "android_client_info": {
+          "package_name": "com.microsoft.CognitiveServicesExample"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "528890704582-995c79tt8j9v7nnhv1jtpfrli64eagci.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.microsoft.CognitiveServicesExample",
+            "certificate_hash": "2823f34ac6138b1d059bf8ee7cf79cede622e9d8"
+          }
+        },
+        {
+          "client_id": "528890704582-g1v4bcsi65oaurfe0pe82f5nvm18050i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZiUp66kiOf3S74ygUSm-MU_YbPEu5ocs"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "528890704582-g1v4bcsi65oaurfe0pe82f5nvm18050i.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -47,6 +47,7 @@ class SpeechIntentParser {
                         break;
 
                     case "target":
+                    case "source":
                         value = entity.getString("entity");
                         value = Character.toUpperCase(value.charAt(0)) + value.substring(1);
                         break;
@@ -92,7 +93,7 @@ class SpeechIntentParser {
         if (source == null)
             missingFields.add("say your own name");
         if (target == null)
-            missingFields.add("to whom are you donating");
+            missingFields.add("to whom are you lending");
         if (amount == null)
             missingFields.add("the amount");
         if (deadline == null)
@@ -106,7 +107,7 @@ class SpeechIntentParser {
 
     private String buildDescription(String action, List<String> missingFields) {
         if (missingFields.isEmpty())
-            return "Good to go!";
+            return "";
         String description = "\nMissing information to " + action + ": ";
         if (missingFields.size() == 1) {
             description += missingFields.get(0);

@@ -9,6 +9,7 @@ repositories {
 dependencies {
     compile 'com.microsoft.projectoxford:speechrecognition:1.2.2'
     compile 'com.android.support:design:25.3.1'
+    compile 'com.google.firebase:firebase-database:10.0.1'
 }
 
 android {
@@ -55,3 +56,5 @@ android {
         abortOnError false
     }
 }
+
+apply plugin: 'com.google.gms.google-services'

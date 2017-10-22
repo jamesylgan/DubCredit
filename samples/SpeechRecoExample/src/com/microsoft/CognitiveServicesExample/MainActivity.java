@@ -34,15 +34,23 @@ package com.microsoft.CognitiveServicesExample;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.support.design.widget.FloatingActionButton;
 import android.text.Html;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.Window;
+import android.widget.Button;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.microsoft.cognitiveservices.speechrecognition.DataRecognitionClient;
 import com.microsoft.cognitiveservices.speechrecognition.ISpeechRecognitionServerEvents;
 import com.microsoft.cognitiveservices.speechrecognition.MicrophoneRecognitionClient;
@@ -54,6 +62,7 @@ import com.microsoft.cognitiveservices.speechrecognition.SpeechRecognitionServic
 public class MainActivity extends Activity implements ISpeechRecognitionServerEvents
 {
     private final String TAG = "DubCredit";
+    private static final int RESULT_PICK_CONTACT = 85500;
     private SpeechIntentParser intentParser = new SpeechIntentParser();
     private TextView outputText, speechPreview, contractTextView;
     private FloatingActionButton startButton;
@@ -123,6 +132,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
 
         this.startButton = (FloatingActionButton) findViewById(R.id.speakNowButton);
@@ -215,9 +225,24 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         Log.i(TAG, "Intent received by onIntentReceived(): " + payload);
         intentParser.addPayload(payload);
         outputText.setText(intentParser.getDescription());
+        if (intentParser.entities.isEmpty()) {
+            speechPreview.setText("No speech entities detected");
+        }
         switch (intentParser.getIntent()) {
             case create:
-                fillCreateContract();
+                if (fillCreateContract()) {
+                    Button goodToGo = (Button) findViewById(R.id.goodToGo);
+                    goodToGo.setVisibility(View.VISIBLE);
+                    goodToGo.setOnClickListener(new OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            Intent contactsIntent = new Intent(Intent.ACTION_PICK,
+                                    ContactsContract.CommonDataKinds.Email.CONTENT_URI);
+                            startActivityForResult(contactsIntent, 1);
+                            // startActivityForResult(contactsIntent, RESULT_PICK_CONTACT);
+                        }
+                    });
+                }
                 break;
 
             default:
@@ -251,7 +276,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         }
     }
 
-    private void fillCreateContract() {
+    private boolean fillCreateContract() {
         String createText = getString(R.string.loan_description);
         String source = intentParser.entities.get("source");
         String target = intentParser.entities.get("target");
@@ -259,32 +284,14 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         String deadline = intentParser.entities.get("builtin.datetimeV2.date");
         String rate = intentParser.entities.get("builtin.percentage");
         String fine = intentParser.entities.get("fine");
-        Log.w(TAG, createText);
-        if (source != null)
-            createText = createText.replace("_source", source);
-        else
-            createText = createText.replace("_source", getString(R.string.say_your_name));
-        if (target != null)
-            createText = createText.replace("_target", target);
-        else
-            createText = createText.replace("_target", getString(R.string.other_person));
-        if (amount != null)
-            createText = createText.replace("_amount", amount);
-        else
-            createText = createText.replace("_amount", getString((R.string.amount)));
-        if (deadline != null)
-            createText = createText.replace("_deadline", deadline);
-        else
-            createText = createText.replace("_deadline", getString((R.string.deadline)));
-        if (rate != null)
-            createText = createText.replace("_rate", rate);
-        else
-            createText = createText.replace("_rate", getString((R.string.interest_rate)));
-        if (fine != null)
-            createText = createText.replace("_fine", fine);
-        else
-            createText = createText.replace("_fine", getString(R.string.fine));
+        createText = createText.replace("_source", source != null ? source : getString(R.string.say_your_name));
+        createText = createText.replace("_target", target != null ? target : getString(R.string.other_person));
+        createText = createText.replace("_amount", amount != null ? amount : getString((R.string.amount)));
+        createText = createText.replace("_deadline", deadline != null ? deadline : getString((R.string.deadline)));
+        createText = createText.replace("_rate", rate != null ? rate : getString((R.string.interest_rate)));
+        createText = createText.replace("_fine", fine != null ? fine : getString(R.string.fine));
         contractTextView.setText(Html.fromHtml(createText, Html.FROM_HTML_MODE_COMPACT));
+        return source != null && target != null && amount != null && deadline != null && rate != null && fine != null;
     }
 
     /**
@@ -314,5 +321,37 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         }
 
         this.startButton.setEnabled(true);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == RESULT_OK) {
+            switch (requestCode) {
+                case RESULT_PICK_CONTACT:
+                    Cursor cursor = null;
+                    try {
+                        String name = null ;
+                        String email = null;
+                        Uri uri = data.getData();
+                        cursor = getContentResolver().query(uri, null, null, null, null);
+                        cursor.moveToFirst();
+                        int nameIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME);
+                        int emailIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Email.ADDRESS);
+                        name = cursor.getString(nameIndex);
+                        email = cursor.getString(emailIndex);
+                        Log.w(TAG, name);
+                        Log.w(TAG, email);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+//                    FirebaseDatabase database = FirebaseDatabase.getInstance();
+//                    DatabaseReference
+//                    contactPicked(data);
+                    break;
+            }
+        } else {
+            Log.e(TAG, "Failed to pick contact");
+        }
     }
 }
