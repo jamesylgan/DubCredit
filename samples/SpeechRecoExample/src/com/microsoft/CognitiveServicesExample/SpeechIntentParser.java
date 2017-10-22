@@ -77,6 +77,9 @@ class SpeechIntentParser {
             case create:
                 return describeCreateContract();
 
+            case accept:
+                return describeAcceptContract();
+
             default:
                 return "Speech not recognized";
         }
@@ -103,6 +106,17 @@ class SpeechIntentParser {
         if (fine == null)
             missingFields.add("fine for missing the deadline");
         return buildDescription("lend", missingFields);
+    }
+
+    private String describeAcceptContract() {
+        ArrayList<String> missingFields = new ArrayList<>();
+        String source = entities.get("source");
+        String target = entities.get("target");
+        if (source == null)
+            missingFields.add("say your own name");
+        if (target == null)
+            missingFields.add("from whom are you accepting");
+        return buildDescription("accept", missingFields);
     }
 
     private String buildDescription(String action, List<String> missingFields) {

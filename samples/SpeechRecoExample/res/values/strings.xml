@@ -18,7 +18,10 @@
     <string name="app_name">DubCredit</string>
     <string name="action_settings">Settings</string>
 
+    <string name="header">Read aloud the contract and we\'ll fill the blanks for you!</string>
+    <string name="headerAcceptContract">_source is offering _value with rate _rate until _date. The fee for late payment is _fine.</string>
     <string name="loan_description">In this contract, I, &lt;i&gt;&lt;u&gt;_source&lt;/u&gt;&lt;/i&gt;, lend the amount of &lt;i&gt;&lt;u&gt;_amount&lt;/u&gt;&lt;/i&gt; to &lt;i&gt;&lt;u&gt;_target&lt;/u&gt;&lt;/i&gt; until &lt;i&gt;&lt;u&gt;_deadline&lt;/u&gt;&lt;/i&gt; with an interest rate of &lt;i&gt;&lt;u&gt;_rate&lt;/u&gt;&lt;/i&gt; a month and a fine of &lt;i&gt;&lt;u&gt;_fine&lt;/u&gt;&lt;/i&gt; if the payment is not done on time</string>
+    <string name="accept_description">I, &lt;i&gt;&lt;u&gt;_source&lt;/u&gt;&lt;/i&gt;, accept the contract from &lt;i&gt;&lt;u&gt;_target&lt;/u&gt;&lt;/i&gt;</string>
     <string name="say_your_name">say your name</string>
     <string name="amount">amount</string>
     <string name="other_person">other person\'s name</string>
@@ -30,7 +33,7 @@
     <!-- Strings related to login -->
     <string name="prompt_email">Email</string>
     <string name="prompt_password">Password (optional)</string>
-    <string name="action_sign_in">Login with Google</string>
+    <string name="action_sign_in">Login to application with Google</string>
     <string name="action_sign_in_short">Login with Google</string>
     <string name="error_invalid_email">This email address is invalid</string>
     <string name="error_invalid_password">This password is too short</string>
@@ -39,4 +42,5 @@
     <string name="permission_rationale">"Contacts permissions are needed for providing email
         completions."
     </string>
+    <string name="title_activity_history">HistoryActivity</string>
 </resources>

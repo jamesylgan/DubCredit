@@ -44,12 +44,14 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
 import android.widget.Button;
-import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.microsoft.cognitiveservices.speechrecognition.DataRecognitionClient;
 import com.microsoft.cognitiveservices.speechrecognition.ISpeechRecognitionServerEvents;
 import com.microsoft.cognitiveservices.speechrecognition.MicrophoneRecognitionClient;
@@ -61,19 +63,22 @@ import com.microsoft.cognitiveservices.speechrecognition.SpeechRecognitionServic
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 public class MainActivity extends Activity implements ISpeechRecognitionServerEvents
 {
     private final String TAG = "DubCredit";
     private static final int RESULT_PICK_CONTACT = 85500;
     private SpeechIntentParser intentParser = new SpeechIntentParser();
-    private TextView outputText, speechPreview, contractTextView;
+    private TextView outputText, speechPreview, contractTextView, header;
     private Button startButton;
     private ContractModel contract;
     private String userId;
+    private DatabaseReference databaseRoot;
+    private ContractModel receivedContract;
 
     int m_waitSeconds = 0;
-    DataRecognitionClient dataClient = null;
     MicrophoneRecognitionClient micClient = null;
     FinalResponseStatus isReceivedResponse = FinalResponseStatus.NotReceived;
 
@@ -141,6 +146,38 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         setContentView(R.layout.activity_main);
 
         userId = hash(getIntent().getStringExtra("user"));
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        databaseRoot = database.getReference();
+        header = (TextView) findViewById(R.id.header);
+        databaseRoot.child(userId).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                receivedContract = dataSnapshot.getValue(ContractModel.class);
+                if (receivedContract == null)
+                    return;
+                Button openContracts = (Button)findViewById(R.id.contractsAvailable);
+                openContracts.setVisibility(View.VISIBLE);
+                openContracts.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        intentParser.entities.clear();
+                        fillAcceptContract();
+                        String content = getString(R.string.headerAcceptContract);
+                        content = content.replace("_source", receivedContract.source);
+                        content = content.replace("_value", String.format("$ %.2f", receivedContract.value));
+                        content = content.replace("_rate", receivedContract.interestRate + "%");
+                        content = content.replace("_date", receivedContract.date);
+                        content = content.replace("_fine", String.format("$ %.2f", receivedContract.fine));
+                        header.setText(content);
+                    }
+                });
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.e(TAG, databaseError.toString());
+            }
+        });
 
         this.startButton = (Button) findViewById(R.id.speakNowButton);
         outputText = (TextView) findViewById(R.id.outputText);
@@ -253,6 +290,13 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                 }
                 break;
 
+            case accept:
+                if (fillAcceptContract()) {
+                    databaseRoot.child(userId).removeValue();
+                    databaseRoot.child("history").child(receivedContract.sourceId).child("accepted").setValue(true);
+                }
+                break;
+
             default:
                 speechPreview.setText("Not recognized");
         }
@@ -306,33 +350,14 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         return source != null && target != null && amount != null && deadline != null && rate != null && fine != null;
     }
 
-    /**
-     * Handles the Click event of the RadioButton control.
-     * @param rGroup The radio grouping.
-     * @param checkedId The checkedId.
-     */
-    private void RadioButton_Click(RadioGroup rGroup, int checkedId) {
-        // Reset everything
-        if (this.micClient != null) {
-            this.micClient.endMicAndRecognition();
-            try {
-                this.micClient.finalize();
-            } catch (Throwable throwable) {
-                throwable.printStackTrace();
-            }
-            this.micClient = null;
-        }
-
-        if (this.dataClient != null) {
-            try {
-                this.dataClient.finalize();
-            } catch (Throwable throwable) {
-                throwable.printStackTrace();
-            }
-            this.dataClient = null;
-        }
-
-        setEnableRecording(true);
+    private boolean fillAcceptContract() {
+        String createText = getString(R.string.accept_description);
+        String source = intentParser.entities.get("source");
+        String target = intentParser.entities.get("target");
+        createText = createText.replace("_source", source != null ? source : getString(R.string.say_your_name));
+        createText = createText.replace("_target", target != null ? target : getString(R.string.other_person));
+        contractTextView.setText(Html.fromHtml(createText));
+        return source != null && target != null;
     }
 
     @Override
@@ -343,6 +368,8 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             try {
                 Uri uri = data.getData();
                 Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+                if (cursor == null)
+                    return;
                 cursor.moveToFirst();
                 int emailIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Email.ADDRESS);
                 email = cursor.getString(emailIndex);
@@ -351,12 +378,16 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                 e.printStackTrace();
                 return;
             }
-            FirebaseDatabase database = FirebaseDatabase.getInstance();
-            DatabaseReference ref = database.getReference();
             String destinationId = hash(email);
             contract.destinationId = destinationId;
-            ref.child(destinationId).setValue(contract);
+            databaseRoot.child(destinationId).setValue(contract);
+            HashMap<String, Object> transaction = new HashMap<>();
+            transaction.put("value", contract.value);
+            transaction.put("destination", contract.destination);
+            databaseRoot.child("history").child(userId).setValue(transaction);
             Toast.makeText(this, "Offer sent to " + email, Toast.LENGTH_LONG).show();
+            intentParser.entities.clear();
+            fillCreateContract();
         }
     }
 

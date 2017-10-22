@@ -36,6 +36,7 @@ public class LoginActivity extends FragmentActivity implements LoaderCallbacks<C
      * Id to identity READ_CONTACTS permission request.
      */
     private static final int REQUEST_READ_CONTACTS = 0;
+    private boolean goingToHistory = false;
 
     // UI references.
     private View mLoginFormView;
@@ -51,7 +52,14 @@ public class LoginActivity extends FragmentActivity implements LoaderCallbacks<C
         mEmailSignInButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                attemptLogin();
+                goingToHistory = false; attemptLogin();
+            }
+        });
+
+        Button historyButton = (Button) findViewById(R.id.viewHistory);
+        historyButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {goingToHistory = true; attemptLogin();
             }
         });
 
@@ -155,7 +163,11 @@ public class LoginActivity extends FragmentActivity implements LoaderCallbacks<C
             GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
             if (result.isSuccess()) {
                 GoogleSignInAccount account = result.getSignInAccount();
-                Intent intent = new Intent(this, MainActivity.class);
+                Intent intent;
+                if (goingToHistory)
+                    intent = new Intent(this, HistoryActivity.class);
+                else
+                    intent = new Intent(this, MainActivity.class);
                 intent.putExtra("user", account.getEmail());
                 Toast.makeText(this, "Welcome " + account.getEmail() + "!", Toast.LENGTH_LONG).show();
                 startActivity(intent);
