@@ -290,7 +290,10 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         createText = createText.replace("_deadline", deadline != null ? deadline : getString((R.string.deadline)));
         createText = createText.replace("_rate", rate != null ? rate : getString((R.string.interest_rate)));
         createText = createText.replace("_fine", fine != null ? fine : getString(R.string.fine));
-        contractTextView.setText(Html.fromHtml(createText, Html.FROM_HTML_MODE_COMPACT));
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N)
+            contractTextView.setText(Html.fromHtml(createText, Html.FROM_HTML_MODE_COMPACT));
+        else
+            contractTextView.setText(Html.fromHtml(createText));
         return source != null && target != null && amount != null && deadline != null && rate != null && fine != null;
     }
 
