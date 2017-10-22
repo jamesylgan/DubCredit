@@ -34,19 +34,15 @@ package com.microsoft.CognitiveServicesExample;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.text.Html;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
-import com.microsoft.bing.speech.Conversation;
-import com.microsoft.bing.speech.SpeechClientStatus;
 import com.microsoft.cognitiveservices.speechrecognition.DataRecognitionClient;
 import com.microsoft.cognitiveservices.speechrecognition.ISpeechRecognitionServerEvents;
 import com.microsoft.cognitiveservices.speechrecognition.MicrophoneRecognitionClient;
@@ -55,23 +51,17 @@ import com.microsoft.cognitiveservices.speechrecognition.RecognitionStatus;
 import com.microsoft.cognitiveservices.speechrecognition.SpeechRecognitionMode;
 import com.microsoft.cognitiveservices.speechrecognition.SpeechRecognitionServiceFactory;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.concurrent.TimeUnit;
-
 public class MainActivity extends Activity implements ISpeechRecognitionServerEvents
 {
     private final String TAG = "DubCredit";
+    private SpeechIntentParser intentParser = new SpeechIntentParser();
+    private TextView outputText, speechPreview, contractTextView;
+    private FloatingActionButton startButton;
+
     int m_waitSeconds = 0;
     DataRecognitionClient dataClient = null;
     MicrophoneRecognitionClient micClient = null;
     FinalResponseStatus isReceivedResponse = FinalResponseStatus.NotReceived;
-    FloatingActionButton _startButton;
 
     public enum FinalResponseStatus { NotReceived, OK, Timeout }
 
@@ -107,14 +97,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     }
 
     /**
-     * Gets a value indicating whether LUIS results are desired.
-     * @return true if LUIS results are to be returned otherwise, false.
-     */
-    private Boolean getWantIntent() {
-        return true;
-    }
-
-    /**
      * Gets the current speech recognition mode.
      * @return The speech recognition mode.
      */
@@ -143,7 +125,12 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        this._startButton = (FloatingActionButton) findViewById(R.id.speakNowButton);
+        this.startButton = (FloatingActionButton) findViewById(R.id.speakNowButton);
+        outputText = (TextView) findViewById(R.id.outputText);
+        speechPreview = (TextView) findViewById(R.id.speechPreview);
+        contractTextView = (TextView) findViewById(R.id.contractTextView);
+
+        fillCreateContract();
 
         if (getString(R.string.primaryKey).startsWith("Please")) {
             new AlertDialog.Builder(this)
@@ -155,7 +142,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
         // setup the buttons
         final MainActivity This = this;
-        this._startButton.setOnClickListener(new OnClickListener() {
+        this.startButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View arg0) {
                 This.StartButton_Click(arg0);
@@ -164,38 +151,24 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     }
 
     /**
-     * Handles the Click event of the _startButton control.
+     * Handles the Click event of the startButton control.
      */
     private void StartButton_Click(View arg0) {
-        this._startButton.setEnabled(false);
+        this.startButton.setEnabled(false);
 
         this.m_waitSeconds = this.getMode() == SpeechRecognitionMode.ShortPhrase ? 20 : 200;
 
         this.LogRecognitionStart();
 
         if (this.micClient == null) {
-            if (this.getWantIntent()) {
-                Log.i(TAG, "Start microphone dictation with Intent detection");
-
-                this.micClient =
-                        SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(
-                                this,
-                                this.getDefaultLocale(),
-                                this,
-                                this.getPrimaryKey(),
-                                this.getLuisAppId(),
-                                this.getLuisSubscriptionID());
-            }
-            else
-            {
-                this.micClient = SpeechRecognitionServiceFactory.createMicrophoneClient(
-                        this,
-                        this.getMode(),
-                        this.getDefaultLocale(),
-                        this,
-                        this.getPrimaryKey());
-            }
-
+            this.micClient =
+                    SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(
+                            this,
+                            this.getDefaultLocale(),
+                            this,
+                            this.getPrimaryKey(),
+                            this.getLuisAppId(),
+                            this.getLuisSubscriptionID());
             this.micClient.setAuthenticationUri(this.getAuthenticationUri());
         }
 
@@ -222,7 +195,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         }
 
         if (isFinalDicationMessage) {
-            this._startButton.setEnabled(true);
+            this.startButton.setEnabled(true);
             this.isReceivedResponse = FinalResponseStatus.OK;
         }
 
@@ -240,18 +213,26 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
      */
     public void onIntentReceived(final String payload) {
         Log.i(TAG, "Intent received by onIntentReceived(): " + payload);
-        SpeechIntentParser parser = new SpeechIntentParser(payload);
-        TextView outputText = (TextView) findViewById(R.id.outputText);
-        outputText.setText(parser.getDescription());
+        intentParser.addPayload(payload);
+        outputText.setText(intentParser.getDescription());
+        switch (intentParser.getIntent()) {
+            case create:
+                fillCreateContract();
+                break;
+
+            default:
+                speechPreview.setText("Not recognized");
+        }
     }
 
     public void onPartialResponseReceived(final String response) {
         Log.i(TAG, "Partial result received by onPartialResponseReceived(): " + response);
+        speechPreview.setText(response);
     }
 
     public void onError(final int errorCode, final String response) {
         Log.i(TAG, "onError(): " + errorCode + " - " + response);
-        this._startButton.setEnabled(true);
+        this.startButton.setEnabled(true);
     }
 
     /**
@@ -266,8 +247,44 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
         if (!recording) {
             this.micClient.endMicAndRecognition();
-            this._startButton.setEnabled(true);
+            this.startButton.setEnabled(true);
         }
+    }
+
+    private void fillCreateContract() {
+        String createText = getString(R.string.loan_description);
+        String source = intentParser.entities.get("source");
+        String target = intentParser.entities.get("target");
+        String amount = intentParser.entities.get("amount");
+        String deadline = intentParser.entities.get("builtin.datetimeV2.date");
+        String rate = intentParser.entities.get("builtin.percentage");
+        String fine = intentParser.entities.get("fine");
+        Log.w(TAG, createText);
+        if (source != null)
+            createText = createText.replace("_source", source);
+        else
+            createText = createText.replace("_source", getString(R.string.say_your_name));
+        if (target != null)
+            createText = createText.replace("_target", target);
+        else
+            createText = createText.replace("_target", getString(R.string.other_person));
+        if (amount != null)
+            createText = createText.replace("_amount", amount);
+        else
+            createText = createText.replace("_amount", getString((R.string.amount)));
+        if (deadline != null)
+            createText = createText.replace("_deadline", deadline);
+        else
+            createText = createText.replace("_deadline", getString((R.string.deadline)));
+        if (rate != null)
+            createText = createText.replace("_rate", rate);
+        else
+            createText = createText.replace("_rate", getString((R.string.interest_rate)));
+        if (fine != null)
+            createText = createText.replace("_fine", fine);
+        else
+            createText = createText.replace("_fine", getString(R.string.fine));
+        contractTextView.setText(Html.fromHtml(createText, Html.FROM_HTML_MODE_COMPACT));
     }
 
     /**
@@ -296,6 +313,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             this.dataClient = null;
         }
 
-        this._startButton.setEnabled(true);
+        this.startButton.setEnabled(true);
     }
 }

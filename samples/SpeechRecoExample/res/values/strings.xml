@@ -15,8 +15,14 @@
     <string name="luisAppID">4864e199-f498-4922-8311-8d65e1c7d2d2</string>
     <string name="luisSubscriptionID">a2f506eb0c344ed991bb46ddc7521862</string>
 
-    <string name="app_name">Project Oxford Speech Recognition Sample</string>
+    <string name="app_name">DubCredit</string>
     <string name="action_settings">Settings</string>
 
-    <string name="loan_description">In this contract, I, <u>your name</u>, lend the amount of <u>amount</u> to <u>other person</u> until <u>when do you want to be paid</u> with an interest rate of <u>how much do you want to make</u> and a fine of <u>how much will the fine be?</u> if the payment is not done on time</string>
+    <string name="loan_description">In this contract, I, &lt;i&gt;&lt;u&gt;_source&lt;/u&gt;&lt;/i&gt;, lend the amount of &lt;i&gt;&lt;u&gt;_amount&lt;/u&gt;&lt;/i&gt; to &lt;i&gt;&lt;u&gt;_target&lt;/u&gt;&lt;/i&gt; until &lt;i&gt;&lt;u&gt;_deadline&lt;/u&gt;&lt;/i&gt; with an interest rate of &lt;i&gt;&lt;u&gt;_rate&lt;/u&gt;&lt;/i&gt; a month and a fine of &lt;i&gt;&lt;u&gt;_fine&lt;/u&gt;&lt;/i&gt; if the payment is not done on time</string>
+    <string name="say_your_name">say your name</string>
+    <string name="amount">amount</string>
+    <string name="other_person">other person\'s name</string>
+    <string name="deadline">when do you want to be paid</string>
+    <string name="interest_rate">how much do you want to make</string>
+    <string name="fine">how much will the fine be?</string>
 </resources>

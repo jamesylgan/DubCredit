@@ -11,6 +11,11 @@ import java.util.List;
 class SpeechIntentParser {
     public HashMap<String, String> entities = new HashMap<>();
     private String query, intent;
+    public enum Intent {
+        unknown, create, accept;
+    }
+
+    SpeechIntentParser() {}
 
     SpeechIntentParser(final String payload) {
         addPayload(payload);
@@ -30,12 +35,24 @@ class SpeechIntentParser {
                 JSONObject entity = jsonEntities.getJSONObject(i);
                 String type = entity.getString("type");
                 String value;
-                if (type.equals("builtin.datetimeV2.date")) {
-                    value = parseDateTimeEntity(entity);
-                    if (value == null)
-                        continue;
-                } else {
-                    value = entity.getString("entity");
+                switch (type) {
+                    case "builtin.datetimeV2.date":
+                        value = parseDateTimeEntity(entity);
+                        if (value == null)
+                            continue;
+                        break;
+
+                    case "builtin.percentage":
+                        value = entity.getJSONObject("resolution").getString("value");
+                        break;
+
+                    case "target":
+                        value = entity.getString("entity");
+                        value = Character.toUpperCase(value.charAt(0)) + value.substring(1);
+                        break;
+
+                    default:
+                        value = entity.getString("entity");
                 }
                 entities.put(type, value);
             }
@@ -44,13 +61,19 @@ class SpeechIntentParser {
         }
     }
 
-    public String getIntent() {
-        return intent;
+    public Intent getIntent() {
+        switch (intent) {
+            case "Create contract":
+                return Intent.create;
+
+            default:
+                return Intent.unknown;
+        }
     }
 
     public String getDescription() {
-        switch (intent) {
-            case "Create contract":
+        switch (getIntent()) {
+            case create:
                 return describeCreateContract();
 
             default:
@@ -59,62 +82,39 @@ class SpeechIntentParser {
     }
 
     private String describeCreateContract() {
-        ArrayList<String> descriptionFields = new ArrayList<>(), missingFields = new ArrayList<>();
+        ArrayList<String> missingFields = new ArrayList<>();
         String source = entities.get("source");
         String target = entities.get("target");
         String amount = entities.get("amount");
         String deadline = entities.get("builtin.datetimeV2.date");
-        String rate = entities.get("percentage");
+        String rate = entities.get("builtin.percentage");
         String fine = entities.get("fine");
-        if (source == null) {
+        if (source == null)
             missingFields.add("say your own name");
-        } else {
-            descriptionFields.add("from " + source);
-        }
-        if (target == null) {
+        if (target == null)
             missingFields.add("to whom are you donating");
-        } else {
-            descriptionFields.add("to " + target);
-        }
-        if (amount == null) {
+        if (amount == null)
             missingFields.add("the amount");
-        } else {
-            descriptionFields.add("the value of " + amount);
-        }
-        if (deadline == null) {
+        if (deadline == null)
             missingFields.add("the deadline of the payment");
-        } else {
-            descriptionFields.add("until " + deadline);
-        }
-        if (rate == null) {
+        if (rate == null)
             missingFields.add("the interest rate");
-        } else {
-            descriptionFields.add("with an interest rate of " + rate);
-        }
-        if (fine == null) {
+        if (fine == null)
             missingFields.add("fine for missing the deadline");
-        } else {
-            descriptionFields.add("with a fine of " + fine + ", should the deadline be missed");
-        }
-        return buildDescription("Lending", descriptionFields, missingFields);
+        return buildDescription("lend", missingFields);
     }
 
-    private String buildDescription(String header, List<String> descriptionFields, List<String> missingFields) {
-        String description = header;
-        for (String s : descriptionFields) {
-            description += " " + s;
-        }
-        description += ".";
-        if (!missingFields.isEmpty()) {
-            description += "\nMissing information:";
-            if (missingFields.size() == 1) {
-                description += missingFields.get(0);
-            } else {
-                int i;
-                for (i = 0; i < missingFields.size() - 2; i++)
-                    description += missingFields.get(i) + ", ";
-                description += missingFields.get(i) + " and " + missingFields.get(i + 1);;
-            }
+    private String buildDescription(String action, List<String> missingFields) {
+        if (missingFields.isEmpty())
+            return "Good to go!";
+        String description = "\nMissing information to " + action + ": ";
+        if (missingFields.size() == 1) {
+            description += missingFields.get(0);
+        } else {
+            int i;
+            for (i = 0; i < missingFields.size() - 2; i++)
+                description += missingFields.get(i) + ", ";
+            description += missingFields.get(i) + " and " + missingFields.get(i + 1);;
         }
         return description;
     }
