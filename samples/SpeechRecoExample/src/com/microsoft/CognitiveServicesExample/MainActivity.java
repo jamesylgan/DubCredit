@@ -36,12 +36,14 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
+import android.widget.TextView;
 
 import com.microsoft.bing.speech.Conversation;
 import com.microsoft.bing.speech.SpeechClientStatus;
@@ -52,7 +54,14 @@ import com.microsoft.cognitiveservices.speechrecognition.RecognitionResult;
 import com.microsoft.cognitiveservices.speechrecognition.RecognitionStatus;
 import com.microsoft.cognitiveservices.speechrecognition.SpeechRecognitionMode;
 import com.microsoft.cognitiveservices.speechrecognition.SpeechRecognitionServiceFactory;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends Activity implements ISpeechRecognitionServerEvents
@@ -62,7 +71,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     DataRecognitionClient dataClient = null;
     MicrophoneRecognitionClient micClient = null;
     FinalResponseStatus isReceivedResponse = FinalResponseStatus.NotReceived;
-    Button _startButton;
+    FloatingActionButton _startButton;
 
     public enum FinalResponseStatus { NotReceived, OK, Timeout }
 
@@ -102,7 +111,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
      * @return true if LUIS results are to be returned otherwise, false.
      */
     private Boolean getWantIntent() {
-        return false;
+        return true;
     }
 
     /**
@@ -134,7 +143,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        this._startButton = (Button) findViewById(R.id.button1);
+        this._startButton = (FloatingActionButton) findViewById(R.id.speakNowButton);
 
         if (getString(R.string.primaryKey).startsWith("Please")) {
             new AlertDialog.Builder(this)
@@ -231,6 +240,9 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
      */
     public void onIntentReceived(final String payload) {
         Log.i(TAG, "Intent received by onIntentReceived(): " + payload);
+        SpeechIntentParser parser = new SpeechIntentParser(payload);
+        TextView outputText = (TextView) findViewById(R.id.outputText);
+        outputText.setText(parser.getDescription());
     }
 
     public void onPartialResponseReceived(final String response) {
