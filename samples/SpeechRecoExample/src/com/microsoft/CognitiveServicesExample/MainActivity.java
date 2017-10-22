@@ -33,13 +33,11 @@
 package com.microsoft.CognitiveServicesExample;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
-import android.support.design.widget.FloatingActionButton;
 import android.text.Html;
 import android.util.Log;
 import android.view.View;
@@ -70,8 +68,9 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     private static final int RESULT_PICK_CONTACT = 85500;
     private SpeechIntentParser intentParser = new SpeechIntentParser();
     private TextView outputText, speechPreview, contractTextView;
-    private FloatingActionButton startButton;
+    private Button startButton;
     private ContractModel contract;
+    private String userId;
 
     int m_waitSeconds = 0;
     DataRecognitionClient dataClient = null;
@@ -141,20 +140,14 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
 
-        this.startButton = (FloatingActionButton) findViewById(R.id.speakNowButton);
+        userId = hash(getIntent().getStringExtra("user"));
+
+        this.startButton = (Button) findViewById(R.id.speakNowButton);
         outputText = (TextView) findViewById(R.id.outputText);
         speechPreview = (TextView) findViewById(R.id.speechPreview);
         contractTextView = (TextView) findViewById(R.id.contractTextView);
 
         fillCreateContract();
-
-        if (getString(R.string.primaryKey).startsWith("Please")) {
-            new AlertDialog.Builder(this)
-                    .setTitle(getString(R.string.add_subscription_key_tip_title))
-                    .setMessage(getString(R.string.add_subscription_key_tip))
-                    .setCancelable(false)
-                    .show();
-        }
 
         // setup the buttons
         final MainActivity This = this;
@@ -240,6 +233,8 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                     contract = new ContractModel(
                             intentParser.entities.get("source"),
                             intentParser.entities.get("target"),
+                            hash(userId),
+                            null,
                             parseValue(intentParser.entities.get("amount")),
                             intentParser.entities.get("builtin.datetimeV2.date"),
                             Math.round(parseValue(intentParser.entities.get("builtin.percentage"))),
@@ -307,10 +302,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         createText = createText.replace("_deadline", deadline != null ? deadline : getString((R.string.deadline)));
         createText = createText.replace("_rate", rate != null ? rate : getString((R.string.interest_rate)));
         createText = createText.replace("_fine", fine != null ? fine : getString(R.string.fine));
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N)
-            contractTextView.setText(Html.fromHtml(createText, Html.FROM_HTML_MODE_COMPACT));
-        else
-            contractTextView.setText(Html.fromHtml(createText));
+        contractTextView.setText(Html.fromHtml(createText));
         return source != null && target != null && amount != null && deadline != null && rate != null && fine != null;
     }
 
@@ -361,7 +353,9 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             }
             FirebaseDatabase database = FirebaseDatabase.getInstance();
             DatabaseReference ref = database.getReference();
-            ref.child(hash(email)).setValue(contract);
+            String destinationId = hash(email);
+            contract.destinationId = destinationId;
+            ref.child(destinationId).setValue(contract);
             Toast.makeText(this, "Offer sent to " + email, Toast.LENGTH_LONG).show();
         }
     }
