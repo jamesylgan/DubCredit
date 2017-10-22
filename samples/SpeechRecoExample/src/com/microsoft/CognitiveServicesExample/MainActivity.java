@@ -155,12 +155,13 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                 receivedContract = dataSnapshot.getValue(ContractModel.class);
                 if (receivedContract == null)
                     return;
-                Button openContracts = (Button)findViewById(R.id.contractsAvailable);
+                final Button openContracts = (Button)findViewById(R.id.contractsAvailable);
                 openContracts.setVisibility(View.VISIBLE);
                 openContracts.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View view) {
                         intentParser.entities.clear();
+                        openContracts.setVisibility(View.INVISIBLE);
                         fillAcceptContract();
                         String content = getString(R.string.headerAcceptContract);
                         content = content.replace("_source", receivedContract.source);
