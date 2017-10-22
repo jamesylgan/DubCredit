@@ -48,6 +48,7 @@ import android.view.Window;
 import android.widget.Button;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -59,6 +60,10 @@ import com.microsoft.cognitiveservices.speechrecognition.RecognitionStatus;
 import com.microsoft.cognitiveservices.speechrecognition.SpeechRecognitionMode;
 import com.microsoft.cognitiveservices.speechrecognition.SpeechRecognitionServiceFactory;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 public class MainActivity extends Activity implements ISpeechRecognitionServerEvents
 {
     private final String TAG = "DubCredit";
@@ -66,6 +71,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     private SpeechIntentParser intentParser = new SpeechIntentParser();
     private TextView outputText, speechPreview, contractTextView;
     private FloatingActionButton startButton;
+    private ContractModel contract;
 
     int m_waitSeconds = 0;
     DataRecognitionClient dataClient = null;
@@ -164,7 +170,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
      * Handles the Click event of the startButton control.
      */
     private void StartButton_Click(View arg0) {
-        this.startButton.setEnabled(false);
+        setEnableRecording(false);
 
         this.m_waitSeconds = this.getMode() == SpeechRecognitionMode.ShortPhrase ? 20 : 200;
 
@@ -205,7 +211,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         }
 
         if (isFinalDicationMessage) {
-            this.startButton.setEnabled(true);
+            setEnableRecording(true);
             this.isReceivedResponse = FinalResponseStatus.OK;
         }
 
@@ -231,6 +237,14 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         switch (intentParser.getIntent()) {
             case create:
                 if (fillCreateContract()) {
+                    contract = new ContractModel(
+                            intentParser.entities.get("source"),
+                            intentParser.entities.get("target"),
+                            parseValue(intentParser.entities.get("amount")),
+                            intentParser.entities.get("builtin.datetimeV2.date"),
+                            Math.round(parseValue(intentParser.entities.get("builtin.percentage"))),
+                            parseValue(intentParser.entities.get("fine"))
+                            );
                     Button goodToGo = (Button) findViewById(R.id.goodToGo);
                     goodToGo.setVisibility(View.VISIBLE);
                     goodToGo.setOnClickListener(new OnClickListener() {
@@ -239,7 +253,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                             Intent contactsIntent = new Intent(Intent.ACTION_PICK,
                                     ContactsContract.CommonDataKinds.Email.CONTENT_URI);
                             startActivityForResult(contactsIntent, 1);
-                            // startActivityForResult(contactsIntent, RESULT_PICK_CONTACT);
                         }
                     });
                 }
@@ -257,7 +270,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
     public void onError(final int errorCode, final String response) {
         Log.i(TAG, "onError(): " + errorCode + " - " + response);
-        this.startButton.setEnabled(true);
+        setEnableRecording(true);
     }
 
     /**
@@ -272,8 +285,12 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
         if (!recording) {
             this.micClient.endMicAndRecognition();
-            this.startButton.setEnabled(true);
+            setEnableRecording(true);
         }
+    }
+
+    private float parseValue(String value) {
+        return Float.parseFloat(value.replaceAll("[^\\\\.0123456789]",""));
     }
 
     private boolean fillCreateContract() {
@@ -323,38 +340,57 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             this.dataClient = null;
         }
 
-        this.startButton.setEnabled(true);
+        setEnableRecording(true);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.w(TAG, "onActivityResult: " + data.getDataString());
         if (resultCode == RESULT_OK) {
-            switch (requestCode) {
-                case RESULT_PICK_CONTACT:
-                    Cursor cursor = null;
-                    try {
-                        String name = null ;
-                        String email = null;
-                        Uri uri = data.getData();
-                        cursor = getContentResolver().query(uri, null, null, null, null);
-                        cursor.moveToFirst();
-                        int nameIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME);
-                        int emailIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Email.ADDRESS);
-                        name = cursor.getString(nameIndex);
-                        email = cursor.getString(emailIndex);
-                        Log.w(TAG, name);
-                        Log.w(TAG, email);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-
-//                    FirebaseDatabase database = FirebaseDatabase.getInstance();
-//                    DatabaseReference
-//                    contactPicked(data);
-                    break;
+            String email;
+            try {
+                Uri uri = data.getData();
+                Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+                cursor.moveToFirst();
+                int emailIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Email.ADDRESS);
+                email = cursor.getString(emailIndex);
+                cursor.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return;
             }
-        } else {
-            Log.e(TAG, "Failed to pick contact");
+            FirebaseDatabase database = FirebaseDatabase.getInstance();
+            DatabaseReference ref = database.getReference();
+            ref.child(hash(email)).setValue(contract);
+            Toast.makeText(this, "Offer sent to " + email, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private String hash(String data) {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+        StringBuffer hexString = new StringBuffer();
+        byte[] hash = digest.digest(data.getBytes(StandardCharsets.UTF_8));
+        for (byte aHash : hash) {
+            String hex = Integer.toHexString(0xff & aHash);
+            if (hex.length() == 1) hexString.append('0');
+            hexString.append(hex);
+        }
+        return hexString.toString();
+    }
+
+    private void setEnableRecording(boolean enable) {
+        this.startButton.setEnabled(enable);
+        if (enable)
+            this.startButton.setBackgroundColor(getResources().getColor(android.R.color.holo_green_light));
+        else {
+            speechPreview.setText("Recording...");
+            this.startButton.setBackgroundColor(getResources().getColor(android.R.color.holo_red_light));
         }
     }
 }

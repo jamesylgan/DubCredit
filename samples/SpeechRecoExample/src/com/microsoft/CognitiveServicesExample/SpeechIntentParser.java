@@ -15,7 +15,15 @@ class SpeechIntentParser {
         unknown, create, accept;
     }
 
-    SpeechIntentParser() {}
+    SpeechIntentParser() {
+        intent = "Create contract";
+        entities.put("source", "Tiago");
+        entities.put("target", "Bob");
+        entities.put("amount", "$ 50");
+        entities.put("builtin.datetimeV2.date", "10/10/2018");
+        entities.put("builtin.percentage", "5%");
+        entities.put("fine", "$ 10");
+    }
 
     SpeechIntentParser(final String payload) {
         addPayload(payload);

@@ -11,7 +11,7 @@
     https://westus.api.cognitive.microsoft.com/sts/v1.0/issuetoken
     -->
     <string name="authenticationUri"></string>
-    
+
     <string name="luisAppID">4864e199-f498-4922-8311-8d65e1c7d2d2</string>
     <string name="luisSubscriptionID">a2f506eb0c344ed991bb46ddc7521862</string>
 
@@ -25,4 +25,18 @@
     <string name="deadline">when do you want to be paid</string>
     <string name="interest_rate">how much do you want to make</string>
     <string name="fine">how much will the fine be?</string>
+    <string name="title_activity_login">Sign in</string>
+
+    <!-- Strings related to login -->
+    <string name="prompt_email">Email</string>
+    <string name="prompt_password">Password (optional)</string>
+    <string name="action_sign_in">Sign in or register</string>
+    <string name="action_sign_in_short">Sign in</string>
+    <string name="error_invalid_email">This email address is invalid</string>
+    <string name="error_invalid_password">This password is too short</string>
+    <string name="error_incorrect_password">This password is incorrect</string>
+    <string name="error_field_required">This field is required</string>
+    <string name="permission_rationale">"Contacts permissions are needed for providing email
+        completions."
+    </string>
 </resources>
