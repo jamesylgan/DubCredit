@@ -1,3 +1,5 @@
+See it in action: https://www.youtube.com/watch?v=wXnT1VZnRcA
+
 ## Inspiration
 Nafisa had an idea of creating binding contracts for verbal agreements, to allow people to achieve more by being held to their word. Oliver comes from Mexico, where most transactions for the average person use cash so many people have no credit histories, and cannot take out loans. We realized that by combining Nafisa's idea with an issue that was important to Oliver, we could create a robust contract system which could be used to generate credit scores.
 
